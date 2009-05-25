@@ -98,5 +98,37 @@ object SmtpCodecSpec extends Specification {
       decoder.decode(fakeSession, IoBuffer.wrap("VRFY <stevej@pobox.com>\r\n".getBytes), fakeDecoderOutput)
       written mustEqual List(Request(List("VRFY", "<stevej@pobox.com>"), None))
     }
+
+    "NOOP" >> {
+      "NOOP doesn't abide with your extra parameters" >> {
+        decoder.decode(fakeSession, IoBuffer.wrap("NOOP fools\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+      }
+
+      "NOOP responds with 250" >> {
+        decoder.decode(fakeSession, IoBuffer.wrap("NOOP\r\n".getBytes), fakeDecoderOutput)
+        written mustEqual List(Request(List("NOOP"), None))
+      }
+    }
+
+    "QUIT responds" >> {
+      decoder.decode(fakeSession, IoBuffer.wrap("QUIT\r\n".getBytes), fakeDecoderOutput)
+      written mustEqual List(Request(List("QUIT"), None))
+    }
+
+    "RSET responds" >> {
+      decoder.decode(fakeSession, IoBuffer.wrap("RSET\r\n".getBytes), fakeDecoderOutput)
+      written mustEqual List(Request(List("RSET"), None))
+    }
+
+    "HELP responds" >> {
+      decoder.decode(fakeSession, IoBuffer.wrap("HELP\r\n".getBytes), fakeDecoderOutput)
+      written mustEqual List(Request(List("HELP"), None))
+    }
+
+    "STATS responds" >> {
+      decoder.decode(fakeSession, IoBuffer.wrap("STATS\r\n".getBytes), fakeDecoderOutput)
+      written mustEqual List(Request(List("STATS"), None))
+    }
+
   }
 }

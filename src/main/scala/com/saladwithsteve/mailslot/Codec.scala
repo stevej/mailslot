@@ -44,7 +44,7 @@ case class Response(data: IoBuffer)
 object Codec {
   private val log = Logger.get
   val WRITE_COMMANDS = List("DATA", "MAIL", "RCPT")
-  val READ_COMMANDS = List("HELO", "HELP", "VRFY", "NOOP", "QUIT", "RSET")
+  val READ_COMMANDS = List("HELO", "HELP", "VRFY", "NOOP", "QUIT", "RSET", "STATS")
 
   val ALL_COMMANDS = WRITE_COMMANDS ++ READ_COMMANDS
 
@@ -63,6 +63,14 @@ object Codec {
   // Reads from DATA to the first \r\n.\r\n.
   def dataDecoder(): Step = readDelimiterBuffer("\r\n.\r\n".getBytes()) { buf =>
     state.out.write(Request(List("DATA"), Some(buf)))
+    End
+  }
+
+  /**
+   * For a no-parametern command, takes the command line and writes it into the state stream.
+   */
+  def noParams(segments: Array[String]) = {
+    state.out.write(Request(segments.toList, None))
     End
   }
 
@@ -100,7 +108,7 @@ object Codec {
        * RCPT TO: email_address
        */
       case "RCPT" if segments.length > 1 => segments(1).toUpperCase match {
-        case "TO:"   if segments.length == 3 => state.out.write(Request(segments.toList, None)); End
+        case "TO:" if segments.length == 3 => state.out.write(Request(segments.toList, None)); End
         case _ => throw new ProtocolError("501 Syntax: RCPT TO: <email_address>")
       }
 
@@ -112,32 +120,12 @@ object Codec {
         End
       }
 
-      case "VRFY" => {
-        // Ignore any parameters.
-        state.out.write(Request(segments.toList, None))
-        End
-      }
-
-      case "HELP" => {
-        // Ignore any parameters
-        state.out.write(Request(segments.toList, None))
-        End
-      }
-
-      case "QUIT" => {
-        state.out.write(Request(segments.toList, None))
-        End
-      }
-
-      case "NOOP" if segments.length == 1 => {
-        state.out.write(Request(segments.toList, None))
-        End
-      }
-
-      case "RSET" => {
-        state.out.write(Request(segments.toList, None))
-        End
-      }
+      case "VRFY" => noParams(segments)
+      case "NOOP" if segments.length == 1 => noParams(segments)
+      case "HELP" => noParams(segments)
+      case "QUIT" => noParams(segments)
+      case "RSET" => noParams(segments)
+      case "STATS" => noParams(segments)
 
       case _ => {
         throw new ProtocolError("502 Error: command not implemented: %s".format(command))
