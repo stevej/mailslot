@@ -87,6 +87,7 @@ object Codec {
           End
         }
       }
+
       /**
        * MAIL FROM: email_address
        */
@@ -128,7 +129,7 @@ object Codec {
         End
       }
 
-      case "NOOP" if segment.lengths == 1 => {
+      case "NOOP" if segments.length == 1 => {
         state.out.write(Request(segments.toList, None))
         End
       }
