@@ -4,13 +4,13 @@
   <description>mailslot is an smtp-based appserver</description>
 
   <!-- override creation of a jar with a version number in the name -->
-  <property name="dist.name" value="example" />
+  <property name="dist.name" value="mailslot" />
   <property name="dist.build_name" value="true" />
 
   <property name="ivy.settings.file" value="${basedir}/ivy/ivysettings.xml" />
   <import file="${basedir}/ant/bootstrap.xml" />
 
-  <property name="install.dir" location="/opt/local/example" />
+  <property name="install.dir" location="/opt/local/mailslot" />
   <target name="install" depends="package">
     <mkdir dir="${install.dir}" />
     <copy todir="${install.dir}">

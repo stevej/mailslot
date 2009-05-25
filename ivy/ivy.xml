@@ -9,7 +9,7 @@
     revision="1.0"
     e:buildpackage="com.saladwithsteve.mailslot"
     e:testclass="com.saladwithsteve.mailslot.TestRunner"
-    e:jarclassname="com.saladwithsteve.mailslot.Main"
+    e:jarclassname="com.saladwithsteve.mailslot.MailSlot"
     e:thriftpackage="com.saladwithsteve.mailslot.gen"
   />
 
@@ -37,5 +37,6 @@
     <dependency org="net.lag" name="configgy" rev="1.3" />
     <dependency org="net.lag" name="naggati" rev="0.6" />
     <dependency org="org.apache.mina" name="mina-core" rev="2.0.0-M4" />
+    <dependency org="org.slf4j" name="slf4j-jdk14" rev="1.5.2" />
   </dependencies>
 </ivy-module>

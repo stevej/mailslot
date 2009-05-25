@@ -8,9 +8,14 @@ import org.apache.mina.transport.socket.SocketAcceptor
 import org.apache.mina.transport.socket.nio.{NioProcessor, NioSocketAcceptor}
 import java.net.InetSocketAddress
 import java.util.concurrent.{CountDownLatch, Executors, ExecutorService, TimeUnit}
+import scala.actors.{Actor, Scheduler}
+import scala.actors.Actor._
 
-object Main {
+
+object MailSlot {
   private val log = Logger.get
+  private val deathSwitch = new CountDownLatch(1)
+
   val runtime = new RuntimeEnvironment(getClass)
 
   var acceptorExecutor: ExecutorService = null
@@ -23,7 +28,7 @@ object Main {
 
   def startup(config: Config) {
     val listenAddress = config.getString("listen_host", "0.0.0.0")
-    val listenPort = config.getInt("listen_port", 9025)
+    val listenPort = config.getInt("listen_port", 10025)
 
     acceptorExecutor = Executors.newCachedThreadPool()
     acceptor = new NioSocketAcceptor(acceptorExecutor, new NioProcessor(acceptorExecutor))
@@ -36,5 +41,12 @@ object Main {
       smtp.Codec.decoder))
     acceptor.setHandler(new IoHandlerActorAdapter(session => new SmtpHandler(session, config)))
     acceptor.bind(new InetSocketAddress(listenAddress, listenPort))
+
+    log.info("Listening on port %s", listenPort)
+
+    actor {
+      deathSwitch.await
+    }
+
   }
 }

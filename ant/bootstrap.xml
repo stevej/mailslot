@@ -19,7 +19,8 @@
     trick to avoid hitting the website again. (that would be annoying
     when building offline.)
   -->
-  <target name="download-ivy" unless="skip.download">
+  <!-- target name="download-ivy" unless="skip.download" -->
+  <target name="download-ivy" unless="offline">
     <mkdir dir="${ivy.jar.dir}"/>
     <condition property="ivy.url" value="file:${ivy.jar.file}">
       <available file="${ivy.jar.file}" />
