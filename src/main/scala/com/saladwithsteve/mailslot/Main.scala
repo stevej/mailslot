@@ -10,6 +10,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.{CountDownLatch, Executors, ExecutorService, TimeUnit}
 import scala.actors.{Actor, Scheduler}
 import scala.actors.Actor._
+import com.twitter.commons.Stats
 
 
 object MailSlot {
@@ -40,8 +41,7 @@ object MailSlot {
     acceptor.setBacklog(1000)
     acceptor.setReuseAddress(true)
     acceptor.getSessionConfig.setTcpNoDelay(true)
-    acceptor.getFilterChain.addLast("codec", new ProtocolCodecFilter(smtp.Codec.encoder,
-      smtp.Codec.decoder))
+    acceptor.getFilterChain.addLast("codec", new ProtocolCodecFilter(smtp.Codec.encoder, smtp.Codec.decoder))
     acceptor.setHandler(new IoHandlerActorAdapter(session => new SmtpHandler(session, config, noop)))
     acceptor.bind(new InetSocketAddress(listenAddress, listenPort))
 
