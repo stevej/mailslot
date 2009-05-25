@@ -16,8 +16,8 @@
       <ibiblio name="scala-tools.org" m2compatible="true" root="http://scala-tools.org/repo-releases/" />
       <ibiblio name="scala-tools.org-snapshots" m2compatible="true" root="http://scala-tools.org/repo-snapshots/" changingPattern=".*-SNAPSHOT" />
       <!-- for smack, smackx -->
-      <ibiblio name="reucon" m2compatible="true" root="http://maven.reucon.com/public/" />
       <ibiblio name="maven2" m2compatible="true" />
+      <ibiblio name="reucon" m2compatible="true" root="http://maven.reucon.com/public/" />
       <!-- for oauth -->
       <ibiblio name="oauth.net" m2compatible="true" root="http://oauth.googlecode.com/svn/code/maven" />
       <ibiblio name="download.java.net" m2compatible="true" root="http://download.java.net/maven/2/" />

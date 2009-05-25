@@ -10,7 +10,7 @@ import scala.actors.Actor
 import scala.actors.Actor._
 
 
-class SmtpHandler(val session: IoSession, val config: Config) extends Actor {
+class SmtpHandler(val session: IoSession, val config: Config, val router: MailRouter) extends Actor {
   private val log = Logger.get
   val serverName = config.getString("server-name", "localhost")
 
@@ -100,6 +100,12 @@ class SmtpHandler(val session: IoSession, val config: Config) extends Actor {
     writeResponse("354 Ok\r\n")
     // FIXME: the client actually sends the body _after_ we send the 354 header so this code won't work.
     writeResponse("250 Safely handled. %s".format(txnId))
+
+    // Once we've read the email, it's time to parse this with JavaMail and pass it along to the registered handler.
+    req.data match {
+      case Some(bytes) => router(EmailBuilder(bytes))
+      case None => log.warning("cannot route email with no data")
+    }
   }
 
   def vrfy(req: smtp.Request) {

@@ -2,7 +2,7 @@
   <!-- CONFIG: net.lag.example is the example project we're going to setup" -->
   <!-- CONFIG: testclass is your test runner -->
   <!-- CONFIG: jarclassname is the name of your main class to run via java -jar -->
-  <!-- CONFIG: thriftpackage is where generated thrift classes go. 
+  <!-- CONFIG: thriftpackage is where generated thrift classes go.
                Only matters if you're using thrift. -->
   <info organisation="com.saladwithsteve"
     module="mailslot"
@@ -38,5 +38,7 @@
     <dependency org="net.lag" name="naggati" rev="0.6" />
     <dependency org="org.apache.mina" name="mina-core" rev="2.0.0-M4" />
     <dependency org="org.slf4j" name="slf4j-jdk14" rev="1.5.2" />
+    <dependency org="javax.activation" name="activation" rev="1.1" />
+    <dependency org="javax.mail" name="mail" rev="1.4" />
   </dependencies>
 </ivy-module>

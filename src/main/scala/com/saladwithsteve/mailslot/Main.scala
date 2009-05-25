@@ -30,6 +30,9 @@ object MailSlot {
     val listenAddress = config.getString("listen_host", "0.0.0.0")
     val listenPort = config.getInt("listen_port", 10025)
 
+    // FIXME: make this configurable via Configgy
+    val noop = new NoOpMailRouter(Map.empty)
+
     acceptorExecutor = Executors.newCachedThreadPool()
     acceptor = new NioSocketAcceptor(acceptorExecutor, new NioProcessor(acceptorExecutor))
 
@@ -39,7 +42,7 @@ object MailSlot {
     acceptor.getSessionConfig.setTcpNoDelay(true)
     acceptor.getFilterChain.addLast("codec", new ProtocolCodecFilter(smtp.Codec.encoder,
       smtp.Codec.decoder))
-    acceptor.setHandler(new IoHandlerActorAdapter(session => new SmtpHandler(session, config)))
+    acceptor.setHandler(new IoHandlerActorAdapter(session => new SmtpHandler(session, config, noop)))
     acceptor.bind(new InetSocketAddress(listenAddress, listenPort))
 
     log.info("Listening on port %s", listenPort)
@@ -47,6 +50,5 @@ object MailSlot {
     actor {
       deathSwitch.await
     }
-
   }
 }
