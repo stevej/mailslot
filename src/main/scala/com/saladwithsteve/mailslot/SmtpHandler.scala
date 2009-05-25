@@ -78,6 +78,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
 
   private def handle(req: smtp.Request) = {
     req.line(0) match {
+      case "HELO" => helo(req)
       case "MAIL" => mail(req)
       case "RCPT" => rcpt(req)
       case "DATA" => data(req)
@@ -88,6 +89,10 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
       case "RSET" => rset(req)
       case "STATS" => stats(req)
     }
+  }
+
+  def helo(req: smtp.Request) {
+    writeResponse("250 %s\r\n".format(serverName))
   }
 
   def mail(req: smtp.Request) {
@@ -135,11 +140,11 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
     writeResponse("250 Ok\r\n")
   }
   def stats(req: smtp.Request) {
-    var report = new mutable.ArrayBuffer[(String, String)]
-    report += (("bytesWritten", MailStats.bytesWritten.toString))
-    report += (("totalSessions", MailStats.totalSessions.toString))
-    report += (("closedSessions", MailStats.closedSessions.toString))
-    report += (("sessionErrors", MailStats.sessionErrors.toString))
+    var report = new mutable.ArrayBuffer[(String, Long)]
+    report += (("bytesWritten", MailStats.bytesWritten()))
+    report += (("totalSessions", MailStats.totalSessions()))
+    report += (("closedSessions", MailStats.closedSessions()))
+    report += (("sessionErrors", MailStats.sessionErrors()))
 
 val summary = {
       for ((key, value) <- report) yield "220-%s %s".format(key, value)
