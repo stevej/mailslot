@@ -8,6 +8,7 @@ import org.apache.mina.core.session.{IdleStatus, IoSession}
 import java.io.IOException
 import scala.actors.Actor
 import scala.actors.Actor._
+import scala.collection.mutable
 
 
 class SmtpHandler(val session: IoSession, val config: Config, val router: MailRouter) extends Actor {
@@ -38,12 +39,14 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
               log.error(cause, "Exception caught on session %d: %s", 0, cause.getMessage)
               writeResponse("502 ERROR\r\n")
           }
+          MailStats.sessionErrors.incr
           session.close
         }
 
         case MinaMessage.SessionClosed =>
           log.debug("End of session %d", 0)
           //abortAnyTransaction
+          MailStats.closedSessions.incr
           exit()
 
         case MinaMessage.SessionIdle(status) =>
@@ -52,6 +55,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
 
         case MinaMessage.SessionOpened =>
           log.debug("Session opened %d", 0)
+          MailStats.totalSessions.incr
           writeResponse("220 %s SMTP\r\n".format(serverName))
       }
     }
@@ -68,7 +72,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
     buffer.put(bytes)
     buffer.put(data)
     buffer.flip
-    //Stats.bytesWritten.incr(buffer.capacity)
+    MailStats.bytesWritten.incr(buffer.capacity)
     session.write(new smtp.Response(buffer))
   }
 
@@ -82,6 +86,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
       case "QUIT" => quit(req)
       case "NOOP" => noop(req)
       case "RSET" => rset(req)
+      case "STATS" => stats(req)
     }
   }
 
@@ -128,5 +133,17 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
   def rset(req: smtp.Request) {
     // FIXME: actually reset the current envelope
     writeResponse("250 Ok\r\n")
+  }
+  def stats(req: smtp.Request) {
+    var report = new mutable.ArrayBuffer[(String, String)]
+    report += (("bytesWritten", MailStats.bytesWritten.toString))
+    report += (("totalSessions", MailStats.totalSessions.toString))
+    report += (("closedSessions", MailStats.closedSessions.toString))
+    report += (("sessionErrors", MailStats.sessionErrors.toString))
+
+val summary = {
+      for ((key, value) <- report) yield "220-%s %s".format(key, value)
+    }.mkString("", "\r\n", "\r\n")
+    writeResponse(summary)
   }
 }
