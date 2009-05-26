@@ -45,7 +45,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
 
         case MinaMessage.SessionClosed =>
           log.debug("End of session %d", 0)
-          //abortAnyTransaction
+          // abortAnyTransaction
           MailStats.closedSessions.incr
           exit()
 
@@ -139,14 +139,16 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
     // FIXME: actually reset the current envelope
     writeResponse("250 Ok\r\n")
   }
+
   def stats(req: smtp.Request) {
+    // FIXME: add a secret key to protect against snoopers
     var report = new mutable.ArrayBuffer[(String, Long)]
     report += (("bytesWritten", MailStats.bytesWritten()))
     report += (("totalSessions", MailStats.totalSessions()))
     report += (("closedSessions", MailStats.closedSessions()))
     report += (("sessionErrors", MailStats.sessionErrors()))
 
-val summary = {
+    val summary = {
       for ((key, value) <- report) yield "220-%s %s".format(key, value)
     }.mkString("", "\r\n", "\r\n")
     writeResponse(summary)
