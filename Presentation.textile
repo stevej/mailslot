@@ -24,6 +24,12 @@ Things to measure:
 * Aggregate latency should be used if single latency metrics are
 too expensive. (per 1000 requests, etc)
 
+h3. Dashboards
+
+Are not static
+* grow as you learn to look for new things
+* shrink as you learn what isn't helpful
+
 h3. Getting data into your dashboards
 
 * Prefer a text-based protocol for stats
@@ -42,8 +48,6 @@ h3. Logging
 
 Configgy comes with a nice Scala-ified wrapper around java.util.logger
 API
-
-
 
 h3. Load Test
 
@@ -70,9 +74,10 @@ Learn the corner cases of performance for your server.
   * Needed to switch on -server VM
   * other generic JVM tuning
 
-* Must Do
-  * Watch top
-  * Watch iostat to see if you're causing any surprise disk accesses
+h3. Stress Test Things to Watch
+
+  * top
+  * iostat to see if you're causing any surprise disk accesses
   * If you want to get nuts, can use dtrace to track this
   * Turn down logging levels, redirect to /dev/null
   * Turn on hprof profiling for one run, see if you did anything stupid
@@ -80,36 +85,51 @@ Learn the corner cases of performance for your server.
 After knowing some basic facts about how your server performs under
 expected load, a small production launch is in order.
 
-h3. Shadow Launches
+h3. Shadow Launch
 
-1. Write-only mode
-  Tee writes into it without being able to cause production pain
+* Tee production traffic into your new system
+* Ensure that your new jankiness can't destabilize your service
+* See how your system performs under peak load
+* Learn your blind spots
+* Improve your dashboard
+
+h3. Un-shadow
+
+Start using your system for it's intended purpose
+Not all at once
+1%, 10%, 50%, 100% is a reasonable turn-up rate.
 
 
-Turning up the heat:
+h3. GC tuning
 
-We find that 1%, 10%, 50%, 100% is a reasonable approach.
+Learn the difference between Latency and Throughput collectors
+Use verbose gc log statements
+ - How often are you collecting
+ - Is garbage moving into the later generations?
+ - Tune your sizes appropriately
 
+h3. Useful tools
 
+jstack - see what your threads are doing
+  kill -3 can also give you this information
+jmap - see how memory is allocated
 
+h3. Scala Lessons
 
+Be sure to tune your actors.maxPoolSize if you're using Actors
+We use the number of current cores * 2
 
-
-h3. Scala does have corner cases
-
-Too many Actors
-
-Be sure to tune your actors.maxPoolSize if you're using Actors.
-
-Even though they aren't idiomatic in Scala, null checks are nearly
-free in the JVM.
-
+null can be useful in tight loops
+null checks nearly free in the JVM
+Not idiomatic, prefer Option in your public API
 
 h3. Final Notes
 
-* Naggati is fun!
+* Naggati is fun
 * Kestrel - our speedy message queue
 * MailSlot - my fake mail server
-Check it out
 
+Was this talk old hat to you?
+Consider joining Twitter!
+http://twitter.com/jobs
 
