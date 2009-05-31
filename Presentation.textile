@@ -1,0 +1,84 @@
+h1.  Writing Production Servers in Scala
+
+
+Assumes some basic Scala knowledge.
+
+Assumes you're writing Scala network-based servers.
+
+Wrote a companion project that handles SMTP traffic called MailSlot to
+illustrate concepts.
+
+h3. You make what you measure.
+
+Pick a measurement tool: Cacti, Ganglia, Munin. Learn it, use it.
+
+Build a dashboard
+-insert low rez screenshot of NameSearch dashboard-
+Things to measure:
+* Inbound QPS
+* Outbound QPS
+* Memory use
+* Uptime
+* Latency per request
+* If talking to other network services, measure their latency
+* Aggregate latency should be used if single latency metrics are
+too expensive. (per 1000 requests, etc)
+
+h3. Getting data into your dashboards
+
+* Prefer a text-based protocol for stats
+* Don't want to fumble with your fancy toolchain
+
+MailSlot comes with a ruby script that, given a host, portnumber, and
+passkey, will print out the stats for a single MailSlot instance.
+
+h3. Configuration management
+
+We wrote, use, and recommend Configgy.
+
+Structure our configuration files as test.conf, staging.conf, production.conf
+
+h3. Logging
+
+Configgy comes with a nice Scala-ified wrapper around java.util.logger
+API
+
+
+
+h3. Load Test
+
+For HTTP, there are lots of tools: JMeter, ab, Apache Flood, Tsung.
+Varying feature sets. For simple load tests, we start with ab and move
+onto JMeter.
+
+h3. Stress Test
+
+Learn the corner cases of performance for your server.
+
+After knowing some basic facts about how your server performs under
+expected load, a small production launch is in order.
+
+h3. Shadow Launches
+
+1. Write-only mode
+  Tee writes into it without being able to cause production pain
+
+
+Turning up the heat:
+
+We find that 1%, 10%, 50%, 100% is a reasonable approach.
+
+
+
+
+
+
+h3. Scala does have corner cases where performance can become unpredictable.
+
+Too many Actors
+
+Even though they aren't idiomatic in Scala, null checks are nearly
+free in the JVM.
+
+
+
