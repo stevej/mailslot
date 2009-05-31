@@ -135,7 +135,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
 
     // Once we've read the email, it's time to parse this with JavaMail and pass it along to the registered handler.
     req.data match {
-      case Some(bytes) => router(EmailBuilder(bytes))
+      case Some(bytes) => MailStats.mailRouterLatency.time[Unit] { router(EmailBuilder(bytes)) }
       case None => log.warning("cannot route email with no data")
     }
     writeResponse("250 Safely handled. txn %s\n".format(txnId))
@@ -164,20 +164,26 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
   }
 
   def stats(req: smtp.Request) {
-    // FIXME: add a secret key to protect against snoopers.
     if (req.line.length < 2 || req.line(1) != passkey) {
       log.debug("password expected: %s, received: %s", passkey, req.line(1))
       writeResponse("502 Password Incorrect for STATS request\n")
     }
+
     var report = new mutable.ArrayBuffer[(String, Long)]
     report += (("bytesWritten", MailStats.bytesWritten()))
     report += (("totalSessions", MailStats.totalSessions.intValue()))
     report += (("closedSessions", MailStats.closedSessions()))
     report += (("sessionErrors", MailStats.sessionErrors()))
+    val routerTiming = MailStats.mailRouterLatency.getCountMinMaxAvg(false)
+    report += (("mailRouterLatencyCount", routerTiming._1))
+    report += (("mailRouterLatencyMin", routerTiming._2))
+    report += (("mailRouterLatencyMax", routerTiming._3))
+    report += (("mailRouterLatencyAvg", routerTiming._4))
 
     val summary = {
       for ((key, value) <- report) yield "220 %s %s".format(key, value)
     }.mkString("", "\n", "\n")
+
     writeResponse(summary)
   }
 }
