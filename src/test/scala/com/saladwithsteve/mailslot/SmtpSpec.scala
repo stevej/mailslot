@@ -52,10 +52,16 @@ object SmtpCodecSpec extends Specification {
           decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM:\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
         }
 
+        "MAIL FROM works with a close email address" >> {
+          decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM:stevej@pobox.com\r\n".getBytes), fakeDecoderOutput)
+          written mustEqual List(Request(List("MAIL", "FROM:", "stevej@pobox.com"), None))
+        }
+
         "MAIL FROM works with an email address" >> {
           decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM: stevej@pobox.com\r\n".getBytes), fakeDecoderOutput)
           written mustEqual List(Request(List("MAIL", "FROM:", "stevej@pobox.com"), None))
         }
+
       }
     }
 
@@ -74,15 +80,16 @@ object SmtpCodecSpec extends Specification {
 
     "DATA" >> {
        "DATA requires a body" >> {
-         decoder.decode(fakeSession, IoBuffer.wrap("DATA\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+         decoder.decode(fakeSession, IoBuffer.wrap("DATA\r\n".getBytes), fakeDecoderOutput)
+         written mustEqual List(Request(List("DATA"), None))
        }
 
-      "DATA accepts a single-line body" >> {
-        decoder.decode(fakeSession, IoBuffer.wrap("DATA\r\n\r\n this is an email\r\n.\r\n".getBytes), fakeDecoderOutput)
+      "A single header is accepted as an email body" >> {
+        decoder.decode(fakeSession, IoBuffer.wrap("From: foo\r\nTo: bar\r\n\r\nthis is an email\r\n.\r\n".getBytes), fakeDecoderOutput)
         written(0) match {
           case Request(commands, Some(data)) => {
-            commands mustEqual List("DATA")
-            new String(data) mustEqual "\r\n this is an email\r\n.\r\n"
+            commands mustEqual List("DATABODY")
+            new String(data) mustEqual "From: foo\r\nTo: bar\r\n\r\nthis is an email\r\n.\r\n"
           }
           case _ => fail
         }

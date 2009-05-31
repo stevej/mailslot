@@ -1,3 +1,4 @@
+/** Copyright 2009 Steve Jenson, licensed under the included Apache 2.0 License. */
 package com.saladwithsteve.mailslot
 
 import net.lag.configgy.{Config, Configgy, RuntimeEnvironment}
@@ -10,11 +11,20 @@ import scala.actors.Actor
 import scala.actors.Actor._
 import scala.collection.mutable
 
-
+/**
+ * SmtpHandler receives groups of commands and optionally data from the Codec supplied to Mina.
+ *
+ * @author Steve Jenson &lt;stevej@twitter.com&gt;
+ */
 class SmtpHandler(val session: IoSession, val config: Config, val router: MailRouter) extends Actor {
   private val log = Logger.get
-  val serverName = config.getString("server-name", "localhost")
 
+  val serverName = config.getString("server-name", "localhost")
+  val passkey = config.getString("passkey", null)
+  if (passkey == null) {
+    log.error("passkey cannot be left empty")
+    throw new IllegalStateException("passkey left empty in config file")
+  }
   session.getConfig.setReadBufferSize(config.getInt("mina-read-buffer-size", 2048))
   IoHandlerActorAdapter.filter(session) -= classOf[MinaMessage.MessageSent]
 
@@ -82,6 +92,8 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
       case "MAIL" => mail(req)
       case "RCPT" => rcpt(req)
       case "DATA" => data(req)
+      // not an actual SMTP command but how we encode that we've seen the body after a DATA command.
+      case "DATABODY" => databody(req)
       case "VRFY" => vrfy(req)
       case "HELP" => help(req)
       case "QUIT" => quit(req)
@@ -106,10 +118,17 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
   }
 
   def data(req: smtp.Request) {
-    val txnId = 0
     writeResponse("354 Ok\r\n")
-    // FIXME: the client actually sends the body _after_ we send the 354 header so this code won't work.
-    writeResponse("250 Safely handled. %s".format(txnId))
+  }
+
+  /**
+   * Handles the email body supplied after the DATA command. Note that there is no explicit state switching here,
+   * there may or may not be MAIL FROM and RCPT TO sent before this. We aim to fix this.
+   */
+  def databody(req: smtp.Request) {
+    val txnId = 0
+    // FIXME: add a useful txn id for error handling.
+    writeResponse("250 Safely handled. txn %s".format(txnId))
 
     // Once we've read the email, it's time to parse this with JavaMail and pass it along to the registered handler.
     req.data match {
@@ -141,7 +160,11 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
   }
 
   def stats(req: smtp.Request) {
-    // FIXME: add a secret key to protect against snoopers
+    // FIXME: add a secret key to protect against snoopers.
+    if (req.line(1) != passkey) {
+      log.debug("password expected: %s, received: %s", passkey, req.line(1))
+      writeResponse("502 Password Incorrect\r\n")
+    }
     var report = new mutable.ArrayBuffer[(String, Long)]
     report += (("bytesWritten", MailStats.bytesWritten()))
     report += (("totalSessions", MailStats.totalSessions()))
@@ -149,7 +172,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
     report += (("sessionErrors", MailStats.sessionErrors()))
 
     val summary = {
-      for ((key, value) <- report) yield "220-%s %s".format(key, value)
+      for ((key, value) <- report) yield "220 %s %s".format(key, value)
     }.mkString("", "\r\n", "\r\n")
     writeResponse(summary)
   }
