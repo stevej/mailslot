@@ -19,9 +19,19 @@ trait MailRouter {
   def apply(email: MimeBodyPart)
 }
 
-
+/**
+ * Simply prints the email to System.out
+ */
 class NoOpMailRouter(routeMap: Map[String, (MimeBodyPart) => Unit]) extends MailRouter {
   def apply(email: MimeBodyPart) {
-    println("email: %s".format(email))
+    import javax.mail.Header
+
+    val headers = email.getAllHeaders()
+    while (headers.hasMoreElements()) {
+      val header = headers.nextElement().asInstanceOf[Header]
+      //println("%s: %s".format(header.getName, header.getValue))
+      1 + 1
+    }
+    //email.writeTo(System.out)
   }
 }

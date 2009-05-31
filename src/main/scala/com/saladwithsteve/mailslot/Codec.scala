@@ -51,20 +51,13 @@ object Codec {
   val encoder = new ProtocolEncoder {
     def encode(session: IoSession, message: AnyRef, out: ProtocolEncoderOutput) = {
       val buffer = message.asInstanceOf[Response].data
-      //KestrelStats.bytesWritten.incr(buffer.remaining)
+      MailStats.bytesWritten.incr(buffer.remaining)
       out.write(buffer)
     }
 
     def dispose(session: IoSession): Unit = {
       // nothing.
     }
-  }
-
-  // Reads from DATA to the first \r\n.\r\n.
-  def dataDecoder(line: String): Step = readDelimiterBuffer("\r\n.\r\n".getBytes()) { buf =>
-    // FIXME: naggati is eating the \r\n at the end of the line.
-    state.out.write(Request(List("DATABODY"), Some(line.getBytes ++ "\r\n".getBytes ++ buf)))
-    End
   }
 
   /**
@@ -76,15 +69,16 @@ object Codec {
   }
 
   val decoder = new Decoder(readLine(true, "ISO-8859-1") { line =>
-    //println(line)
+
     val segments = line.split(" ")
     // Determine if we are seeing a MIME Header signifying an email body.
     if (segments(0).endsWith(":")) { // then we have a MIME header
-      // switch to using the dataDecoder and return.
-      if (dataDecoder(line)() != COMPLETE) {
-        throw new ProtocolError("501 Syntax: DATA requires body ended with /\r/\n./\r/\n")
+      log.debug("attempting to process email body for line: %s in Thread %s", line, Thread.currentThread)
+      readDelimiterBuffer("\r\n.\r\n".getBytes()) { buf =>
+        // FIXME: naggati is eating the \n at the end of the line.
+        state.out.write(Request(List("DATABODY"), Some(line.getBytes ++ "\n".getBytes ++ buf)))
+        End
       }
-      End
     } else {
       segments(0) = segments(0).toUpperCase
       val command = segments(0)
@@ -143,7 +137,7 @@ object Codec {
         case "HELP" => noParams(segments)
         case "QUIT" => noParams(segments)
         case "RSET" => noParams(segments)
-        case "STATS" => noParams(segments)
+        case "STATS" if segments.length == 2 => noParams(segments)
 
         case _ => {
           throw new ProtocolError("502 Error: command not implemented: %s".format(command))

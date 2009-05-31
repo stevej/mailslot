@@ -40,14 +40,14 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
 
         case MinaMessage.ExceptionCaught(cause) => {
           cause.getCause match {
-            case e: ProtocolError => writeResponse(e.getMessage + "\r\n")
+            case e: ProtocolError => writeResponse(e.getMessage + "\n")
             case _: IOException =>
               // FIXME: create proper session IDs for message tracking.
               log.debug("IO Exception on session %d: %s", 0, cause.getMessage)
             case _ =>
               // FIXME: create proper session IDs for message tracking.
               log.error(cause, "Exception caught on session %d: %s", 0, cause.getMessage)
-              writeResponse("502 ERROR\r\n")
+              writeResponse("502 ERROR\n")
           }
           MailStats.sessionErrors.incr
           session.close
@@ -66,7 +66,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
         case MinaMessage.SessionOpened =>
           log.debug("Session opened %d", 0)
           MailStats.totalSessions.incr
-          writeResponse("220 %s SMTP\r\n".format(serverName))
+          writeResponse("220 %s SMTP\n".format(serverName))
       }
     }
   }
@@ -104,21 +104,22 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
   }
 
   def helo(req: smtp.Request) {
-    writeResponse("250 %s\r\n".format(serverName))
+    writeResponse("250 %s\n".format(serverName))
   }
 
   def mail(req: smtp.Request) {
     // put email address in FROM part of the envelope
-    writeResponse("250 Ok\r\n")
+    writeResponse("250 Ok\n")
   }
 
   def rcpt(req: smtp.Request) {
     // FIXME: put email address in TO part of the envelope
-    writeResponse("250 Ok\r\n")
+    writeResponse("250 Ok\n")
   }
 
   def data(req: smtp.Request) {
-    writeResponse("354 Ok\r\n")
+    log.debug("handling data in Thread %s", Thread.currentThread)
+    writeResponse("354 Ok\n")
   }
 
   /**
@@ -126,44 +127,45 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
    * there may or may not be MAIL FROM and RCPT TO sent before this. We aim to fix this.
    */
   def databody(req: smtp.Request) {
+    log.debug("handling databody in Thread %s", Thread.currentThread)
+    // FIXME: generate a useful txn id for error handling.
     val txnId = 0
-    // FIXME: add a useful txn id for error handling.
-    writeResponse("250 Safely handled. txn %s".format(txnId))
 
     // Once we've read the email, it's time to parse this with JavaMail and pass it along to the registered handler.
     req.data match {
       case Some(bytes) => router(EmailBuilder(bytes))
       case None => log.warning("cannot route email with no data")
     }
+    writeResponse("250 Safely handled. txn %s\n".format(txnId))
   }
 
   def vrfy(req: smtp.Request) {
-    writeResponse("252 send some mail, i'll try my best\r\n")
+    writeResponse("252 send some mail, i'll try my best\n")
   }
 
   def help(req: smtp.Request) {
-    writeResponse("214-SMTP servers help those who help themselves.\r\n214 Go read http://cr.yp.to/smtp.html.\r\n")
+    writeResponse("214-SMTP servers help those who help themselves.\n214 Go read http://cr.yp.to/smtp.html.\n")
   }
 
   def quit(req: smtp.Request) {
-    writeResponse("221 %s saying goodbye\r\n".format(serverName))
+    writeResponse("221 %s saying goodbye\n".format(serverName))
     session.close()
   }
 
   def noop(req: smtp.Request) {
-    writeResponse("250 Ok\r\n")
+    writeResponse("250 Ok\n")
   }
 
   def rset(req: smtp.Request) {
     // FIXME: actually reset the current envelope
-    writeResponse("250 Ok\r\n")
+    writeResponse("250 Ok\n")
   }
 
   def stats(req: smtp.Request) {
     // FIXME: add a secret key to protect against snoopers.
-    if (req.line(1) != passkey) {
+    if (req.line.length < 2 || req.line(1) != passkey) {
       log.debug("password expected: %s, received: %s", passkey, req.line(1))
-      writeResponse("502 Password Incorrect\r\n")
+      writeResponse("502 Password Incorrect\n")
     }
     var report = new mutable.ArrayBuffer[(String, Long)]
     report += (("bytesWritten", MailStats.bytesWritten()))
@@ -173,7 +175,7 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
 
     val summary = {
       for ((key, value) <- report) yield "220 %s %s".format(key, value)
-    }.mkString("", "\r\n", "\r\n")
+    }.mkString("", "\n", "\n")
     writeResponse(summary)
   }
 }

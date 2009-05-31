@@ -33,32 +33,32 @@ object SmtpCodecSpec extends Specification {
 
     "HELO" >> {
       "throw an exception with a bare HELO" >> {
-        decoder.decode(fakeSession, IoBuffer.wrap("HELO\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+        decoder.decode(fakeSession, IoBuffer.wrap("HELO\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
       }
 
       "accept a two-argument HELO" >> {
-        decoder.decode(fakeSession, IoBuffer.wrap("HELO localhost\r\n".getBytes), fakeDecoderOutput)
+        decoder.decode(fakeSession, IoBuffer.wrap("HELO localhost\n".getBytes), fakeDecoderOutput)
         written mustEqual List(Request(List("HELO", "localhost"), None))
       }
     }
 
     "MAIL" >> {
       "Bare MAIL causes an error" >> {
-          decoder.decode(fakeSession, IoBuffer.wrap("MAIL\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+          decoder.decode(fakeSession, IoBuffer.wrap("MAIL\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
       }
 
       "MAIL FROM" >> {
         "MAIL FROM errors without a email address" >> {
-          decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM:\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+          decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM:\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
         }
 
         "MAIL FROM works with a close email address" >> {
-          decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM:stevej@pobox.com\r\n".getBytes), fakeDecoderOutput)
+          decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM:stevej@pobox.com\n".getBytes), fakeDecoderOutput)
           written mustEqual List(Request(List("MAIL", "FROM:", "stevej@pobox.com"), None))
         }
 
         "MAIL FROM works with an email address" >> {
-          decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM: stevej@pobox.com\r\n".getBytes), fakeDecoderOutput)
+          decoder.decode(fakeSession, IoBuffer.wrap("MAIL FROM: stevej@pobox.com\n".getBytes), fakeDecoderOutput)
           written mustEqual List(Request(List("MAIL", "FROM:", "stevej@pobox.com"), None))
         }
 
@@ -68,11 +68,11 @@ object SmtpCodecSpec extends Specification {
     "RCPT" >> {
       "RCPT TO:" >> {
         "RCPT TO: errors without an email address" >> {
-          decoder.decode(fakeSession, IoBuffer.wrap("RCPT TO:\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+          decoder.decode(fakeSession, IoBuffer.wrap("RCPT TO:\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
         }
 
         "RCPT TO: works with an email address" >> {
-          decoder.decode(fakeSession, IoBuffer.wrap("RCPT TO: stevej@pobox.com\r\n".getBytes), fakeDecoderOutput)
+          decoder.decode(fakeSession, IoBuffer.wrap("RCPT TO: stevej@pobox.com\n".getBytes), fakeDecoderOutput)
           written mustEqual List(Request(List("RCPT", "TO:", "stevej@pobox.com"), None))
         }
       }
@@ -80,16 +80,16 @@ object SmtpCodecSpec extends Specification {
 
     "DATA" >> {
        "DATA requires a body" >> {
-         decoder.decode(fakeSession, IoBuffer.wrap("DATA\r\n".getBytes), fakeDecoderOutput)
+         decoder.decode(fakeSession, IoBuffer.wrap("DATA\n".getBytes), fakeDecoderOutput)
          written mustEqual List(Request(List("DATA"), None))
        }
 
       "A single header is accepted as an email body" >> {
-        decoder.decode(fakeSession, IoBuffer.wrap("From: foo\r\nTo: bar\r\n\r\nthis is an email\r\n.\r\n".getBytes), fakeDecoderOutput)
+        decoder.decode(fakeSession, IoBuffer.wrap("From: foo\nTo: bar\n\nthis is an email\r\n.\r\n".getBytes), fakeDecoderOutput)
         written(0) match {
           case Request(commands, Some(data)) => {
             commands mustEqual List("DATABODY")
-            new String(data) mustEqual "From: foo\r\nTo: bar\r\n\r\nthis is an email\r\n.\r\n"
+            new String(data) mustEqual "From: foo\nTo: bar\n\nthis is an email\r\n.\r\n"
           }
           case _ => fail
         }
@@ -97,44 +97,48 @@ object SmtpCodecSpec extends Specification {
     }
 
     "HELP responds" >> {
-      decoder.decode(fakeSession, IoBuffer.wrap("HELP\r\n".getBytes), fakeDecoderOutput)
+      decoder.decode(fakeSession, IoBuffer.wrap("HELP\n".getBytes), fakeDecoderOutput)
       written mustEqual List(Request(List("HELP"), None))
     }
 
     "VRFY responds" >> {
-      decoder.decode(fakeSession, IoBuffer.wrap("VRFY <stevej@pobox.com>\r\n".getBytes), fakeDecoderOutput)
+      decoder.decode(fakeSession, IoBuffer.wrap("VRFY <stevej@pobox.com>\n".getBytes), fakeDecoderOutput)
       written mustEqual List(Request(List("VRFY", "<stevej@pobox.com>"), None))
     }
 
     "NOOP" >> {
       "NOOP doesn't abide with your extra parameters" >> {
-        decoder.decode(fakeSession, IoBuffer.wrap("NOOP fools\r\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+        decoder.decode(fakeSession, IoBuffer.wrap("NOOP fools\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
       }
 
       "NOOP responds with 250" >> {
-        decoder.decode(fakeSession, IoBuffer.wrap("NOOP\r\n".getBytes), fakeDecoderOutput)
+        decoder.decode(fakeSession, IoBuffer.wrap("NOOP\n".getBytes), fakeDecoderOutput)
         written mustEqual List(Request(List("NOOP"), None))
       }
     }
 
     "QUIT responds" >> {
-      decoder.decode(fakeSession, IoBuffer.wrap("QUIT\r\n".getBytes), fakeDecoderOutput)
+      decoder.decode(fakeSession, IoBuffer.wrap("QUIT\n".getBytes), fakeDecoderOutput)
       written mustEqual List(Request(List("QUIT"), None))
     }
 
     "RSET responds" >> {
-      decoder.decode(fakeSession, IoBuffer.wrap("RSET\r\n".getBytes), fakeDecoderOutput)
+      decoder.decode(fakeSession, IoBuffer.wrap("RSET\n".getBytes), fakeDecoderOutput)
       written mustEqual List(Request(List("RSET"), None))
     }
 
     "HELP responds" >> {
-      decoder.decode(fakeSession, IoBuffer.wrap("HELP\r\n".getBytes), fakeDecoderOutput)
+      decoder.decode(fakeSession, IoBuffer.wrap("HELP\n".getBytes), fakeDecoderOutput)
       written mustEqual List(Request(List("HELP"), None))
     }
 
-    "STATS responds" >> {
-      decoder.decode(fakeSession, IoBuffer.wrap("STATS\r\n".getBytes), fakeDecoderOutput)
-      written mustEqual List(Request(List("STATS"), None))
+    "STATS requires passkey" >> {
+      decoder.decode(fakeSession, IoBuffer.wrap("STATS\n".getBytes), fakeDecoderOutput) must throwA[ProtocolError]
+    }
+
+    "STATS passkey responds" >> {
+      decoder.decode(fakeSession, IoBuffer.wrap("STATS foo\n".getBytes), fakeDecoderOutput)
+      written mustEqual List(Request(List("STATS", "foo"), None))
     }
 
   }
