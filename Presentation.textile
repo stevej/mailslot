@@ -48,12 +48,34 @@ API
 h3. Load Test
 
 For HTTP, there are lots of tools: JMeter, ab, Apache Flood, Tsung.
-Varying feature sets. For simple load tests, we start with ab and move
+Varying feature sets. For HTTP, we start with ab and move
 onto JMeter.
+
+* For MailSlot (SMTP)
+  * Wrote basic SMTP load test in Ruby
+  * Sent 1000 emails
+  * Found several bugs
+  * Sweet!
 
 h3. Stress Test
 
 Learn the corner cases of performance for your server.
+
+* For MailSlot
+  * 1 connection, 1000 emails
+  * 1000 connections, 1 email each
+  * 1000 connections, 999 fast, 1 slow
+* Findings
+  * Forgot to tune ulimit!
+  * Needed to switch on -server VM
+  * other generic JVM tuning
+
+* Must Do
+  * Watch top
+  * Watch iostat to see if you're causing any surprise disk accesses
+  * If you want to get nuts, can use dtrace to track this
+  * Turn down logging levels, redirect to /dev/null
+  * Turn on hprof profiling for one run, see if you did anything stupid
 
 After knowing some basic facts about how your server performs under
 expected load, a small production launch is in order.
@@ -73,12 +95,21 @@ We find that 1%, 10%, 50%, 100% is a reasonable approach.
 
 
 
-h3. Scala does have corner cases where performance can become unpredictable.
+h3. Scala does have corner cases
 
 Too many Actors
+
+Be sure to tune your actors.maxPoolSize if you're using Actors.
 
 Even though they aren't idiomatic in Scala, null checks are nearly
 free in the JVM.
 
+
+h3. Final Notes
+
+* Naggati is fun!
+* Kestrel - our speedy message queue
+* MailSlot - my fake mail server
+Check it out
 
 
