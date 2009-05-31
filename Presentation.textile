@@ -30,6 +30,33 @@ Are not static
 * grow as you learn to look for new things
 * shrink as you learn what isn't helpful
 
+h3. Track stats
+
+We wrote a package called scala-stats
+hosted on github
+http://github.com/stevej/scala-stats
+
+Also does w3c logging
+
+h3. Counter
+
+Increment by one or more.
+
+Creating it
+ val bytesWritten = new Counter
+
+Using it
+  MailStats.bytesWritten.incr(buffer.capacity)
+
+Report it
+   "bytesWritten: %s".format(MailStats.bytesWritten())
+
+h3. Time
+
+Stats.time("mail-processing") {
+  // perform expensive operation
+}
+
 h3. Getting data into your dashboards
 
 * Prefer a text-based protocol for stats
@@ -42,12 +69,34 @@ h3. Configuration management
 
 We wrote, use, and recommend Configgy.
 
-Structure our configuration files as test.conf, staging.conf, production.conf
+{{{
+<log>
+  filename = "/var/log/mailslot/mailslot.log"
+  console = "true"
+  roll = "daily"
+  level = "debug"
+</log>
+hostname = "mail.twitter.com"
+port = 25
+passkey = "asdf"
+}}}
+
+
+h3. Configgy Structure
+
+A different conf file for each environment
+ * test.conf
+ * staging.conf
+ * production.conf
 
 h3. Logging
 
 Configgy comes with a nice Scala-ified wrapper around java.util.logger
 API
+
+{{{
+log.debug("End of session %d", sessionId)
+}}}
 
 h3. Load Test
 
