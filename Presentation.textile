@@ -48,19 +48,45 @@ Creating it
 Using it
   MailStats.bytesWritten.incr(buffer.capacity)
 
-Report it
-   "bytesWritten: %s".format(MailStats.bytesWritten())
-
 h3. Time
 
-Stats.time("mail-processing") {
-  // perform expensive operation
-}
+Creating it
+val mailRouterLatency = new Timer
+
+Using it
+  MailStats.mailRouterLatency.time[Unit] { router(EmailBuilder(bytes)) }
+
+
+h3. Reporting
+
+Two Options:
+1) W3C Logs
+2) STATS network call
+
+h3. W3C Log
+
+Standard format
+Crunch w3c logs
+Insert into measurement tools
+
+h3. STATS network call
+
+Already listening on a port with a text-based protocol
+Respond to a STATS call
+
+Example response
+
+mailResponseLatencyAvg 15
+mailResponseLatencyMin 7
+mailResponseLatencyMax 30
+uptime 934
+
 
 h3. Getting data into your dashboards
 
-* Prefer a text-based protocol for stats
+* Prefer a text-based protocol or logfile for stats
 * Don't want to fumble with your fancy toolchain
+* Logfiles can be easily crunched with awk
 
 MailSlot comes with a ruby script that, given a host, portnumber, and
 passkey, will print out the stats for a single MailSlot instance.
