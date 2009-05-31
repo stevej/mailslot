@@ -1,0 +1,325 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+<head>
+          <title>Writing Production Servers in Scala</title>
+
+<!-- configuration parameters -->
+<meta name="defaultView" content="slideshow">
+<!-- style sheet links -->
+<link rel="stylesheet" href="blank.css"          type="text/css" media="projection" id="slideProj">
+<link rel="stylesheet" href="shared/outline.css" type="text/css" media="screen" id="outlineStyle">
+<link rel="stylesheet" href="shared/print.css"   type="text/css" media="print" id="slidePrint">
+
+<!-- S6 JS -->
+<script src="shared/jquery.js" type="text/javascript"></script>
+<script src="shared/slides.js" type="text/javascript"></script>
+
+</head>
+<body background="bg.gif">
+
+<div class="layout">
+<div id="controls"><!-- DO NOT EDIT --></div>
+<div id="currentSlide"><!-- DO NOT EDIT --></div>
+<div id="header"></div>
+<div id="footer">
+<h1>Steve Jenson</h1>
+<h2>Systems Engineer &mdash; Twitter, Inc. </h2>
+</div>
+
+      <div id='microsoft'>
+        <p>
+          Microsoft's Internet Explorer browser
+            has no built-in vector graphics machinery
+             required for "loss-free" gradient background themes.
+        </p>
+        <p>
+          Please upgrade to a better browser
+           such as <a href='http://getfirefox.com'>Firefox</a>, <a href='http://www.opera.com/download'>Opera</a>,
+            <a href='http://google.com/chrome'>Chrome</a>, <a href='http://apple.com/safari/download'>Safari</a> or others
+            with built-in vector graphics machinery and much more.
+
+          (Learn more or post questions or comments
+              at the <a href='http://slideshow.rubyforge.org'>Slide Show (S9)</a>
+            project site. Thanks!)
+        </p>
+    </div>
+</div>
+
+<div class="presentation">
+
+  <!-- add slides here; example -->
+  <div class='slide'>
+    <h1>Writing Production Servers in Scala</h1>
+    <ul>
+      <li>Assumes some basic Scala knowledge</li>
+      <li>Tools for productionizing Scala network-based servers</li>
+      <li>Wrote a companion project that handles SMTP traffic called MailSlot to illustrate concepts.</li>
+    </ul>
+  </div>
+
+  <div class='slide'>
+  <h1>You make what you measure.</h1>
+
+    <ul>
+      <li>Pick a measurement tool: Cacti, Ganglia, Munin. Learn it, use it.</li>
+      <li>Build a dashboard</li>
+    </ul>
+    -insert low rez screenshot of NameSearch dashboard-
+  </div>
+
+  <div class='slide'>
+    <h3>Things to measure</h3>
+
+    <ul>
+      <li>Inbound QPS</li>
+      <li>Outbound QPS</li>
+      <li>Memory use</li>
+      <li>Uptime</li>
+      <li>Latency per request</li>
+      <li>If talking to other network services, measure their latency</li>
+      <li>Aggregate latency should be used if single latency metrics are too expensive. (per 1000 requests, etc)</li>
+    </ul>
+  </div>
+
+  <div class='slide'>
+    <h1>Dashboards</h1>
+
+    <ul>
+      <li>Are not static &mdash Treat as a Living Document</li>
+      <li>Grow as you learn to look for new things</li>
+      <li>Shrink as you learn what isn't helpful</li>
+    </ul>
+  </div>
+
+  <div class='slide'>
+    <h1>Track stats</h1>
+
+    <h4>We wrote a package called scala-stats hosted on github</h4>
+    <a href="http://github.com/stevej/scala-stats">http://github.com/stevej/scala-stats</a>
+
+    <h4>Also does w3c logging</h4>
+  </div>
+
+  <div class='slide'>
+    <h1>Counter</h1>
+
+    <h4>Increment by one or more.</h4>
+
+    <h5>Creating it</h5>
+    <tt>val bytesWritten = new Counter</tt>
+
+    <h5>Using it</h5>
+    <tt>MailStats.bytesWritten.incr(buffer.capacity)</tt>
+  </div>
+
+  <div class='slide'>
+    <h1>Timing</h1>
+    <h4>Keep track of how long things take</h4>
+
+    <h5>Creating it</h5>
+    <tt>val mailRouterLatency = new Timer</tt>
+
+    <h5>Using it</h5>
+    <tt>MailStats.mailRouterLatency.time[Unit] { router(EmailBuilder(bytes)) }</tt>
+
+  </div>
+
+  <div class='slide'>
+    <h1>Reporting</h1>
+
+    Two Options:
+    <ol>
+      <li>W3C Logs</li>
+      <li>STATS network call</li>
+    </ol>
+  </div>
+  <div class='slide'>
+    <h1>W3C Log</h1>
+
+    <ul>
+      <li>Standard format</li>
+      <li>Crunch w3c logs</li>
+      <li>Insert into measurement tools</li>
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>STATS network call</h1>
+    <ul>
+      <li>Already listening on a port with a text-based protocol</li>
+      <li>Respond to a STATS request</li>
+    </ul>
+
+    Example response:
+    <pre>
+      mailResponseLatencyAvg 15
+      mailResponseLatencyMin 7
+      mailResponseLatencyMax 30
+      uptime 934
+    </pre>
+  </div>
+  <div class='slide'>
+    <h1>Getting data into your dashboards</h1>
+    <ul>
+      <li>Prefer a text-based protocol or logfile for stats</li>
+      <li>Don't want to fumble with your fancy toolchain</li>
+      <li>Logfiles can be easily crunched with awk</li>
+    </ul>
+
+    MailSlot comes with a ruby script that, given a host, portnumber, and passkey, will print out the stats for a single MailSlot instance.
+  </div>
+
+  <div class='slide'>
+  <h1>Configuration management</h1>
+
+<h3>We wrote, use, and recommend Configgy</h3>
+
+    <pre>
+&lt;log&gt;
+  filename = "/var/log/mailslot/mailslot.log"
+  console = "true"
+  roll = "daily"
+  level = "debug"
+&lt;/log&gt;
+hostname = "mail.twitter.com"
+port = 25
+passkey = "asdf"
+    </pre>
+  </div>
+  <div class='slide'>
+    <h1>Configgy Structure</h1>
+
+<h4>A different conf file for each environment</h4>
+    <ul>
+      <li>test.conf</li>
+      <li>staging.conf</li>
+      <li>production.conf</li>
+    </ul>
+  </div>
+
+  <div class='slide'>
+    <h1>Logging</h1>
+
+    <h4>Configgy comes with a nice Scala-ified wrapper around java.util.logger API</h4>
+
+    <tt>log.debug("End of session %d", sessionId)</tt>
+  </div>
+
+  <div class='slide'>
+    <h1>Load Testing</h1>
+
+<h4>For HTTP, there are lots of tools</h4>
+    <ul>
+      <li>JMeter
+      <li>ab
+      <li>Apache Flood
+      <li>Tsung
+    </ul>
+    <h4>Varying feature sets. For HTTP, we start with ab and move onto JMeter.</h4>
+  </div>
+
+  <div class='slide'>
+    <h1>Load Testing MailSlot (SMTP)</h1>
+    <ul>
+      <li>Wrote basic SMTP load test in Ruby
+      <li>Sent 1000 emails
+      <li>Found several bugs
+      <li>Sweet!
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>Stress Test</h1>
+
+    <h4>Learn the corner cases of performance for your server</h4>
+
+    <h4>For MailSlot</h4>
+    <ul>
+      <li>1 connection, 1000 emails
+      <li>1000 connections, 1 email each
+      <li>1000 connections, 999 fast, 1 slow
+    </ul>
+    <h4>Findings</h4>
+    <ul>
+      <li>Lowered idle timeout
+      <li>Increased ulimit
+      <li>Switched to <tt>-server</tt> VM
+      <li>other generic JVM tuning
+    </ul>
+  </div>
+
+  <div class='slide'>
+    <h1>Stress Test Things to Watch</h1>
+    <ul>
+      <li>top
+      <li>iostat to see if you're causing any surprise disk accesses
+      <li>If you want to get nuts, can use dtrace to track this
+      <li>Turn down logging levels, redirect to /dev/null
+      <li>Turn on hprof profiling for one run, see if you did anything stupid
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>Shadow Launch</h1>
+    <h4>Goal: To get something into production and see how it acts</h4>
+    <ul>
+      <li>Tee production traffic into your new system
+      <li>Ensure that your new jankiness can't destabilize your service
+      <li>See how your system performs under peak load
+      <li>Learn your blind spots
+      <li>Improve your dashboard
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>Un-shadow</h1>
+    <ul>
+      <li>Start using your system for it's intended purpose
+      <li>Not all at once
+      <li>1%, 10%, 50%, 100% is a reasonable turn-up rate.
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>GC tuning</h1>
+    <ul>
+      <li>Learn the difference between Latency and Throughput collectors
+      <li>Use verbose gc log statements
+      <li>How often are you collecting
+      <li>Is garbage being promoted into the later generations?
+      <li>Tune your sizes appropriately
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>Useful tools</h1>
+    <h4>These are part of the JDK, not the JRE</h4>
+    <ul>
+      <li>jstack - see what your threads are doing
+      <ul><li>kill -3 can also give you this information</li></ul>
+      <li>jmap - see how memory is allocated
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>Scala Lessons</h1>
+    <ul>
+      <li>Be sure to tune your actors.maxPoolSize if you're using Actors
+      <ul><li>We use the number of current cores * 2</li></ul>
+      <li>null can be useful in tight loops
+      <li>null checks nearly free in the JVM
+      <li>Not idiomatic, prefer Option in your public API
+    </ul>
+  </div>
+
+  <div class='slide'>
+    <h1>Final Notes</h1>
+
+    <ul>
+      <li>Naggati is fun
+      <li>Kestrel - our speedy message queue
+      <li>MailSlot - my fake mail server
+    </ul>
+  </div>
+  <div class='slide'>
+    <h1>Was this talk old hat to you?</h1>
+    <h1>Consider joining Twitter!</h1>
+    <h1><a href="http://twitter.com/jobs">http://twitter.com/jobs</a></h1>
+    <h1>Thanks!</h1>
+  </div>
+</div> <!-- presentation -->
+</body>
+</html>
