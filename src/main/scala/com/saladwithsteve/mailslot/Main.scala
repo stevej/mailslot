@@ -31,6 +31,10 @@ object MailSlot {
     val listenAddress = config.getString("listen_host", "0.0.0.0")
     val listenPort = config.getInt("listen_port", 10025)
 
+    val maxThreads = config.getInt("max_threads", Runtime.getRuntime().availableProcessors * 2)
+    System.setProperty("actors.maxPoolSize", maxThreads.toString)
+    log.debug("max_threads=%d", maxThreads)
+
     // FIXME: make this configurable via Configgy
     val noop = new NoOpMailRouter(Map.empty)
 
