@@ -21,6 +21,8 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
 
   val serverName = config.getString("server-name", "localhost")
   val passkey = config.getString("passkey", null)
+  var sessionId = 0
+
   if (passkey == null) {
     log.error("passkey cannot be left empty")
     throw new IllegalStateException("passkey left empty in config file")
@@ -43,10 +45,10 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
             case e: ProtocolError => writeResponse(e.getMessage + "\n")
             case _: IOException =>
               // FIXME: create proper session IDs for message tracking.
-              log.debug("IO Exception on session %d: %s", 0, cause.getMessage)
+              log.debug("IO Exception on session %d: %s", sessionId, cause.getMessage)
             case _ =>
               // FIXME: create proper session IDs for message tracking.
-              log.error(cause, "Exception caught on session %d: %s", 0, cause.getMessage)
+              log.error(cause, "Exception caught on session %d with cause: %s", sessionId, cause.getMessage)
               writeResponse("502 ERROR\n")
           }
           MailStats.sessionErrors.incr
@@ -54,18 +56,18 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
         }
 
         case MinaMessage.SessionClosed =>
-          log.debug("End of session %d", 0)
+          log.debug("End of session %d", sessionId)
           // abortAnyTransaction
           MailStats.closedSessions.incr
           exit()
 
         case MinaMessage.SessionIdle(status) =>
-          log.debug("Idle timeout on session %s", session)
+          log.debug("Idle timeout on session %s", sessionId)
           session.close
 
         case MinaMessage.SessionOpened =>
-          log.debug("Session opened %d", 0)
-          MailStats.totalSessions.incr
+          sessionId = MailStats.totalSessions.incrementAndGet()
+          log.debug("Session opened %d", sessionId)
           writeResponse("220 %s SMTP\n".format(serverName))
       }
     }
@@ -165,11 +167,11 @@ class SmtpHandler(val session: IoSession, val config: Config, val router: MailRo
     // FIXME: add a secret key to protect against snoopers.
     if (req.line.length < 2 || req.line(1) != passkey) {
       log.debug("password expected: %s, received: %s", passkey, req.line(1))
-      writeResponse("502 Password Incorrect\n")
+      writeResponse("502 Password Incorrect for STATS request\n")
     }
     var report = new mutable.ArrayBuffer[(String, Long)]
     report += (("bytesWritten", MailStats.bytesWritten()))
-    report += (("totalSessions", MailStats.totalSessions()))
+    report += (("totalSessions", MailStats.totalSessions.intValue()))
     report += (("closedSessions", MailStats.closedSessions()))
     report += (("sessionErrors", MailStats.sessionErrors()))
 

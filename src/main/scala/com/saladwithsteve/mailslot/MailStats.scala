@@ -2,10 +2,11 @@
 package com.saladwithsteve.mailslot
 
 import com.twitter.commons.Stats.Counter
+import java.util.concurrent.atomic.AtomicInteger
 
 object MailStats {
   val bytesWritten = new Counter
-  val totalSessions = new Counter
+  val totalSessions = new AtomicInteger(0)
   val closedSessions = new Counter
   val sessionErrors = new Counter
 }
