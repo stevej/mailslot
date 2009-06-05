@@ -23,7 +23,7 @@
 <div id="header"></div>
 <div id="footer">
 <h1>Steve Jenson</h1>
-<h2>Systems Engineer &mdash; Twitter, Inc. </h2>
+<h2>System Engineer &mdash; Twitter, Inc. </h2>
 </div>
 
       <div id='microsoft'>
@@ -55,7 +55,7 @@
       <li>Steve Jenson</li>
       <li>System Engineer</li>
       <li>Twitter, Inc</li>
-     <li><tt>twitter.com/stevej</tt></li>
+     <li><tt>@stevej</tt></li>
       <li><tt>stevej@twitter.com</tt></li>
     </ul>
   </div>
@@ -139,6 +139,23 @@
     <h5>Using it</h5>
     <tt>MailStats.mailRouterLatency.time[Unit] { router(EmailBuilder(bytes)) }</tt>
 
+  </div>
+
+  <div class='slide'>
+  <h1>Testing - Bring it up a notch</h1>
+
+  <ul>
+    <li>Counters are critical to understanding service health
+    <li>Unit test them along with your app logic
+    <ul><li>Gives you confidence in your stats</ul>
+  </ul>
+  <p>
+    Good unit testing ensures that your bugs will either be lifecycle
+    or concurrency bugs. Stop finding logic bugs in production.
+  </p>
+  <p>
+    We use specs: <a href="http://code.google.com/p/specs/">http://code.google.com/p/specs/</a>
+  </p> 
   </div>
 
   <div class='slide'>
@@ -287,6 +304,10 @@ passkey = "asdf"
       <li>Turn it up slowly
       <li>1%, 10%, 50%, 100% is a reasonable turn-up rate over 2 weeks
       <li>Ensure that your new jankiness can't destabilize your service
+      <ul>
+        <li>Small read timeouts
+        <li>Send back fake results
+      </ul>
       <li>See how your system performs under peak load
       <li>Learn your blind spots
       <li>Improve your dashboard
@@ -322,11 +343,25 @@ passkey = "asdf"
       <li>jconsole
     </ul>
   </div>
+
   <div class='slide'>
-    <h1>Scala Lessons</h1>
+    <h1>Scala Lessons - Actors</h1>
     <ul>
-      <li>Be sure to tune your actors.maxPoolSize if you're using Actors
+      <li>Actors are a library, not a core language feature
+      <li>There are bugs, if you write good tests, you will find them
+      <li>An Actor is best instantiated for long-life issues
+      <ul>
+        <li>Great for Sessions
+        <li>If you're creating and destroying lots of Actors per minute, you'll feel pain
+      </ul>
+      <li>Be sure to tune your actors.maxPoolSize
       <ul><li>We use the number of current cores * 2</li></ul>
+    </ul>
+  </div>
+
+  <div class='slide'>
+    <h1>Scala Lessons - General</h1>
+    <ul>
       <li>null can be useful in tight loops
       <li>null checks nearly free in the JVM
       <li>Not idiomatic, prefer Option in your public API
